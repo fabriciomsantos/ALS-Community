@@ -30,12 +30,12 @@ class ALSV4_CPP_API UALSAnimNotifyFootstep : public UAnimNotify
 	virtual FString GetNotifyName_Implementation() const override;
 
 public:
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
 	UDataTable* HitDataTable;
 
+	static FName NAME_Foot_R;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Socket")
-	FName FootSocketName = FName(TEXT("Foot_R"));
+	FName FootSocketName = NAME_Foot_R;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
 	TEnumAsByte<ETraceTypeQuery> TraceChannel;
@@ -61,8 +61,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 	bool bSpawnSound = true;
 
+	static FName NAME_FootstepType;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
-	FName SoundParameterName = FName(TEXT("FootstepType"));
+	FName SoundParameterName = NAME_FootstepType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
 	EALSFootstepType FootstepType = EALSFootstepType::Step;

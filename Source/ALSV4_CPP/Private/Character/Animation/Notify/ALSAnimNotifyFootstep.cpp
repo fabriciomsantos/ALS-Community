@@ -10,15 +10,28 @@
 
 #include "Components/AudioComponent.h"
 #include "Engine/DataTable.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Library/ALSCharacterStructLibrary.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
 
 
+const FName NAME_Mask_FootstepSound(TEXT("Mask_FootstepSound"));
+
+FName UALSAnimNotifyFootstep::NAME_FootstepType(TEXT("FootstepType"));
+FName UALSAnimNotifyFootstep::NAME_Foot_R(TEXT("Foot_R"));
+
+
 void UALSAnimNotifyFootstep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
 {
-	if (!MeshComp || !MeshComp->GetAnimInstance())
+	if (!MeshComp)
+	{
+		return;
+	}
+	
+	AActor* MeshOwner = MeshComp->GetOwner();
+	if (!MeshOwner)
 	{
 		return;
 	}
@@ -26,18 +39,16 @@ void UALSAnimNotifyFootstep::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 	if (HitDataTable)
 	{
 		UWorld* World = MeshComp->GetWorld();
-		AActor* MeshOwner = MeshComp->GetOwner();
+		check(World);
 
 		const FVector FootLocation = MeshComp->GetSocketLocation(FootSocketName);
 		const FRotator FootRotation = MeshComp->GetSocketRotation(FootSocketName);
 		const FVector TraceEnd = FootLocation - MeshOwner->GetActorUpVector() * TraceLength;
 
 		FHitResult Hit;
-		TArray<AActor*> ActorsToIgnore;
-		ActorsToIgnore.Add(MeshOwner);
-		ActorsToIgnore.Append(MeshOwner->Children);
-		if (UKismetSystemLibrary::LineTraceSingle(World, FootLocation, TraceEnd, TraceChannel, true, ActorsToIgnore,
-		                                          DrawDebugType, Hit, true))
+
+		if (UKismetSystemLibrary::LineTraceSingle(MeshOwner /*used by bIgnoreSelf*/, FootLocation, TraceEnd, TraceChannel, true /*bTraceComplex*/, MeshOwner->Children,
+		                                          DrawDebugType, Hit, true /*bIgnoreSelf*/))
 		{
 			if (!Hit.PhysMaterial.Get())
 			{
@@ -46,7 +57,11 @@ void UALSAnimNotifyFootstep::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 
 			const EPhysicalSurface SurfaceType = Hit.PhysMaterial.Get()->SurfaceType;
 
-			TArray<FALSHitFX*> HitFXRows;
+			check(IsInGameThread());
+			checkNoRecursion();
+			static TArray<FALSHitFX*> HitFXRows;
+			HitFXRows.Reset();
+
 			HitDataTable->GetAllRows<FALSHitFX>(FString(), HitFXRows);
 
 			FALSHitFX* HitFX = nullptr;
@@ -74,7 +89,7 @@ void UALSAnimNotifyFootstep::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 				UAudioComponent* SpawnedSound = nullptr;
 
 				const float MaskCurveValue = MeshComp->GetAnimInstance()->GetCurveValue(
-					FName(TEXT("Mask_FootstepSound")));
+					NAME_Mask_FootstepSound);
 				const float FinalVolMult = bOverrideMaskCurve
 					                           ? VolumeMultiplier
 					                           : VolumeMultiplier * (1.0f - MaskCurveValue);

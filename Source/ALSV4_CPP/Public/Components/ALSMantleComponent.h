@@ -14,6 +14,9 @@
 
 #include "ALSMantleComponent.generated.h"
 
+// forward declarations
+class UALSDebugComponent;
+
 
 UCLASS(Blueprintable, BlueprintType)
 class ALSV4_CPP_API UALSMantleComponent : public UActorComponent
@@ -23,16 +26,13 @@ class ALSV4_CPP_API UALSMantleComponent : public UActorComponent
 public:
 	UALSMantleComponent();
 
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-
 	UFUNCTION(BlueprintCallable, Category = "ALS|Mantle System")
 	bool MantleCheck(const FALSMantleTraceSettings& TraceSettings,
-	                 EDrawDebugTrace::Type DebugType = EDrawDebugTrace::Type::None);
+	                 EDrawDebugTrace::Type DebugType);
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Mantle System")
 	void MantleStart(float MantleHeight, const FALSComponentAndTransform& MantleLedgeWS,
-	                 EALSMantleType MantleType);
+	                EALSMantleType MantleType);
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Mantle System")
 	void MantleUpdate(float BlendIn);
@@ -51,6 +51,9 @@ public:
 	FALSMantleAsset GetMantleAsset(EALSMantleType MantleType, EALSOverlayState CurrentOverlayState);
 
 protected:
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, 
+	                           FActorComponentTickFunction* ThisTickFunction) override;
+
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
@@ -64,7 +67,7 @@ protected:
 	                           EALSMantleType MantleType);
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Mantle System")
 	UTimelineComponent* MantleTimeline = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Mantle System")
@@ -78,6 +81,14 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Mantle System")
 	UCurveFloat* MantleTimelineCurve;
+
+	static FName NAME_IgnoreOnlyPawn;
+	/** Profile to use to detect objects we allow mantling */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Mantle System")
+	FName MantleObjectDetectionProfile = NAME_IgnoreOnlyPawn;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Mantle System")
+	TEnumAsByte<ECollisionChannel> WalkableSurfaceDetectionChannel = ECC_Visibility;
 
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Mantle System")
 	FALSMantleParams MantleParams;
@@ -101,4 +112,6 @@ protected:
 private:
 	UPROPERTY()
 	AALSBaseCharacter* OwnerCharacter;
+
+	UALSDebugComponent* DebugComponent = nullptr;
 };

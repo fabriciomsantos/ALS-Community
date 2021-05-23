@@ -3,7 +3,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/dyanikoglu/ALSV4_CPP
 // Original Author: Doğa Can Yanıkoğlu
-// Contributors:    Haziq Fadhil, Drakynfly
+// Contributors:    Haziq Fadhil, Drakynfly, CanisHelix
 
 
 #pragma once
@@ -17,6 +17,8 @@
 
 #include "ALSBaseCharacter.generated.h"
 
+// forward declarations
+class UALSDebugComponent;
 class UTimelineComponent;
 class UAnimInstance;
 class UAnimMontage;
@@ -39,7 +41,7 @@ class ALSV4_CPP_API AALSBaseCharacter : public ACharacter
 public:
 	AALSBaseCharacter(const FObjectInitializer& ObjectInitializer);
 
-	UFUNCTION(BlueprintCallable, Category= "ALS|Movement")
+	UFUNCTION(BlueprintCallable, Category = "ALS|Movement")
 	FORCEINLINE class UALSCharacterMovementComponent* GetMyMovementComponent() const
 	{
 		return MyCharacterMovementComponent;
@@ -229,7 +231,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
 	EALSGait GetAllowedGait() const;
 
-	UFUNCTION(BlueprintCallable, Category = "ALS|Movement States")
+	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
 	EALSGait GetActualGait(EALSGait AllowedGait) const;
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Movement System")
@@ -256,6 +258,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "ALS|Utility")
 	float GetAnimCurveValue(FName CurveName) const;
+
+	UFUNCTION(BlueprintCallable, Category = "ALS|Utility")
+	void SetVisibleMesh(USkeletalMesh* NewSkeletalMesh);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "ALS|Utility")
+	void Server_SetVisibleMesh(USkeletalMesh* NewSkeletalMesh);
 
 	/** Camera System */
 
@@ -346,6 +354,8 @@ protected:
 
 	virtual void OnOverlayStateChanged(EALSOverlayState PreviousState);
 
+	virtual void OnVisibleMeshChanged(const USkeletalMesh* PreviousSkeletalMesh);
+
 	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 
 	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
@@ -421,6 +431,9 @@ protected:
 
 	UFUNCTION(Category = "ALS|Replication")
 	void OnRep_OverlayState(EALSOverlayState PrevOverlayState);
+
+	UFUNCTION(Category = "ALS|Replication")
+	void OnRep_VisibleMesh(USkeletalMesh* NewVisibleMesh);
 
 protected:
 	/* Custom movement component*/
@@ -517,6 +530,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "ALS|Essential Information")
 	FRotator ReplicatedControlRotation = FRotator::ZeroRotator;
 
+	/** Replicated Skeletal Mesh Information*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Skeletal Mesh", ReplicatedUsing = OnRep_VisibleMesh)
+	USkeletalMesh* VisibleMesh = nullptr;
+
 	/** State Values */
 
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|State Values")
@@ -564,10 +581,14 @@ protected:
 
 	/** If player hits to the ground with an amount of velocity greater than specified value, switch to breakfall state */
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "ALS|Breakfall System", meta = (EditCondition =
-		"bBreakfallOnLand"))
+	        "bBreakfallOnLand"))
 	float BreakfallOnLandVelocity = 600.0f;
 
 	/** Ragdoll System */
+
+	/** If the skeleton uses a reversed pelvis bone, flip the calculation operator */
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "ALS|Ragdoll System")
+	bool bReversedPelvis = false;
 
 	/** If player hits to the ground with a specified amount of velocity, switch to ragdoll state */
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "ALS|Ragdoll System")
@@ -575,7 +596,7 @@ protected:
 
 	/** If player hits to the ground with an amount of velocity greater than specified value, switch to ragdoll state */
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "ALS|Ragdoll System", meta = (EditCondition =
-		"bRagdollOnLand"))
+	        "bRagdollOnLand"))
 	float RagdollOnLandVelocity = 1000.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Ragdoll System")
@@ -602,10 +623,10 @@ protected:
 
 	float PreviousAimYaw = 0.0f;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|Utility")
 	UALSCharacterAnimInstance* MainAnimInstance = nullptr;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|Camera")
 	UALSPlayerCameraBehavior* CameraBehavior;
 
 	/** Last time the 'first' crouch/roll button is pressed */
@@ -625,4 +646,7 @@ protected:
 
 	/** We won't use curve based movement and a few other features on networked games */
 	bool bEnableNetworkOptimizations = false;
+
+private:
+	UALSDebugComponent* DebugComponent = nullptr;
 };
