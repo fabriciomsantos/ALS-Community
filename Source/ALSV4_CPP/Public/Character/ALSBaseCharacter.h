@@ -17,6 +17,8 @@
 
 #include "ALSBaseCharacter.generated.h"
 
+// forward declarations
+class UALSDebugComponent;
 class UTimelineComponent;
 class UAnimInstance;
 class UAnimMontage;
@@ -584,6 +586,10 @@ protected:
 
 	/** Ragdoll System */
 
+	/** If the skeleton uses a reversed pelvis bone, flip the calculation operator */
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "ALS|Ragdoll System")
+	bool bReversedPelvis = false;
+
 	/** If player hits to the ground with a specified amount of velocity, switch to ragdoll state */
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "ALS|Ragdoll System")
 	bool bRagdollOnLand = false;
@@ -640,4 +646,7 @@ protected:
 
 	/** We won't use curve based movement and a few other features on networked games */
 	bool bEnableNetworkOptimizations = false;
+
+private:
+	UALSDebugComponent* DebugComponent = nullptr;
 };
